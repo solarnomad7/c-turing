@@ -1,0 +1,285 @@
+#include <ctype.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "parser.h"
+
+#define MAX_TOKEN_LEN   50
+#define RESERVED_CHARS  "{}:;<>\n"
+
+typedef enum TokenType
+{
+    IDENTIFIER,
+    VALUE,
+    DIRECTION,
+    SEPARATOR,
+    COLON,
+    OPEN_BRACKET,
+    CLOSE_BRACKET,
+    NA,
+} TokenType;
+
+typedef struct Token
+{
+    TokenType type;
+    char contents[MAX_TOKEN_LEN];
+} Token;
+
+Token* tokenize(char *s);
+bool isreserved(char c);
+char* read_file(char *name);
+
+int parse(char *filename, State *states)
+{
+    State *first = states;
+
+    int num_states = 0;
+    int arr_used = 20;
+
+    char *raw = read_file(filename);
+    Token *tokens = tokenize(raw);
+
+    if (tokens == NULL)
+        return 1;
+
+    bool in_state = false;
+
+    Token *t = tokens;
+    while (t->type != NA)
+    {
+        if (t->type == IDENTIFIER)
+        {
+            if (in_state)
+            {
+                fprintf(stderr, "missing close bracket\n");
+                return 0;
+            }
+            if (strlen(t->contents) > MAX_ID_LEN)
+            {
+                fprintf(stderr, "state identifier too long\n");
+                return 0;
+            }
+
+            in_state = true;
+            strcpy(states->name, t->contents);
+
+            t++;
+            if (t->type != OPEN_BRACKET)
+            {
+                fprintf(stderr, "missing open bracket\n");
+                return 0;
+            }
+            t++;
+        }
+        else if (t->type == VALUE)
+        {
+            if (!in_state)
+            {
+                fprintf(stderr, "value found outside of state\n");
+                return 0;
+            }
+
+            states->instructions[states->num_instructions].read = t->contents[0];
+            t++;
+
+            if (t->type != COLON)
+            {
+                fprintf(stderr, "instruction missing colon\n");
+                return 0;
+            }
+            t++;
+
+            if (t->type != VALUE)
+            {
+                fprintf(stderr, "instruction missing write value\n");
+                return 0;
+            }
+            states->instructions[states->num_instructions].write = t->contents[0];
+            t++;
+
+            if (t->type != DIRECTION)
+            {
+                fprintf(stderr, "instruction missing shift direction\n");
+                return 0;
+            }
+            states->instructions[states->num_instructions].shift = (t->contents[0] == '<') ? LEFT : RIGHT;
+            t++;
+
+            if (t->type != IDENTIFIER)
+            {
+                fprintf(stderr, "instruction missing next state\n");
+                return 0;
+            }
+            if (strlen(t->contents) > MAX_ID_LEN)
+            {
+                fprintf(stderr, "state identifier too long\n");
+                return 0;
+            }
+            strcpy(states->instructions[states->num_instructions++].next_state_name, t->contents);
+            t++;
+
+            if (t->type != SEPARATOR)
+            {
+                fprintf(stderr, "missing separator after instruction\n");
+                return 0;
+            }
+            t++;
+        }
+        else if (t->type == CLOSE_BRACKET)
+        {
+            if (in_state)
+            {
+                in_state = false;
+                states++;
+                num_states++;
+                t++;
+            }
+            else
+            {
+                fprintf(stderr, "bracket mismatch\n");
+                return 0;
+            }
+        }
+    }
+
+    free(raw);
+    free(tokens);
+
+    states = first;
+    return num_states;
+}
+
+Token* tokenize(char *s)
+{
+    int num_tokens = 0;
+    int arr_used = 100;
+    Token *tokens = malloc(arr_used * sizeof(Token));
+    Token *first = tokens;
+
+    while (*s != '\0')
+    {
+        if (*s == '<' || *s == '>')
+        {
+            tokens->type = DIRECTION;
+            tokens->contents[0] = *s;
+            tokens->contents[1] = '\0';
+            tokens++;
+            num_tokens++;
+        }
+        else if (*s == ';')
+        {
+            tokens->type = SEPARATOR;
+            tokens->contents[0] = *s;
+            tokens->contents[1] = '\0';
+            tokens++;
+            num_tokens++;
+        }
+        else if (*s == ':')
+        {
+            tokens->type = COLON;
+            tokens->contents[0] = *s;
+            tokens->contents[1] = '\0';
+            tokens++;
+            num_tokens++;
+        }
+        else if (*s == '{')
+        {
+            tokens->type = OPEN_BRACKET;
+            tokens->contents[0] = *s;
+            tokens->contents[1] = '\0';
+            tokens++;
+            num_tokens++;
+        }
+        else if (*s == '}')
+        {
+            tokens->type = CLOSE_BRACKET;
+            tokens->contents[0] = *s;
+            tokens->contents[1] = '\0';
+            tokens++;
+            num_tokens++;
+        }
+        else if (!isspace(*s) && !isreserved(*s))
+        {
+            char id_contents[MAX_TOKEN_LEN];
+            int i = 0;
+            while (!isspace(*s) && !isreserved(*s))
+            {
+                id_contents[i++] = *s++;
+                if (i == MAX_TOKEN_LEN)
+                {
+                    fprintf(stderr, "state identifier too long\n");
+                    return NULL;
+                }
+            }
+
+            id_contents[i] = '\0';
+            s--;
+
+            if (strlen(id_contents) == 1)
+            {
+                tokens->type = VALUE;
+                tokens->contents[0] = *s;
+                tokens->contents[1] = '\0';
+                tokens++;
+                num_tokens++;
+            }
+            else
+            {
+                tokens->type = IDENTIFIER;
+                strcpy(tokens->contents, id_contents);
+                tokens++;
+                num_tokens++;
+            }
+        }
+
+        s++;
+
+        if (num_tokens == arr_used)
+        {
+            first = realloc(first, (arr_used + 100) * sizeof(Token));
+            arr_used += 100;
+        }
+    }
+
+    tokens->type = NA;
+    return first;
+}
+
+bool isreserved(char c)
+{
+    char *r = RESERVED_CHARS;
+    while (*r != '\0')
+    {
+        if (c == *r)
+            return 1;
+        r++;
+    }
+
+    return 0;
+}
+
+char* read_file(char *filename)
+{
+    char* buffer = NULL;
+    long len;
+
+    FILE *file;
+    if (file = fopen(filename, "rb"))
+    {
+        fseek(file, 0, SEEK_END);
+        len = ftell(file);
+        fseek(file, 0, SEEK_SET);
+
+        buffer = malloc(len+1);
+        if (buffer)
+            fread(buffer, 1, len, file);
+        
+        fclose(file);
+    }
+
+    buffer[len] = '\0';
+
+    return buffer;
+}
