@@ -1,0 +1,17 @@
+START {
+    0: 0 > START;
+    1: 1 > START;
+    _: _ < add_one;
+}
+
+add_one {
+    0: 1 < goto_start;
+    1: 0 < add_one;
+    _: 1 < goto_start;
+}
+
+goto_start {
+    0: 0 < goto_start;
+    1: 1 < goto_start;
+    _: _ > HALT;
+}

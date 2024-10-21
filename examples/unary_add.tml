@@ -1,0 +1,18 @@
+START {
+    1: 1 > START;
+    #: 1 > find_end;
+}
+
+find_end {
+    1: 1 > find_end;
+    _: _ < place_separator;
+}
+
+place_separator {
+    1: # < find_start;
+}
+
+find_start {
+    1: 1 < find_start;
+    _: _ > HALT;
+}
