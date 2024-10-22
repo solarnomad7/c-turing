@@ -7,7 +7,7 @@
 #include "parser.h"
 
 #define MAX_TOKEN_LEN   50
-#define RESERVED_CHARS  "{}:;<>=\n"
+#define RESERVED_CHARS  "{}:;<>=\\\n"
 
 typedef enum TokenType
 {
@@ -169,53 +169,45 @@ Token* tokenize(char *s)
     Token *tokens = malloc(arr_used * sizeof(Token));
     Token *first = tokens;
 
+    bool escaping = false;
+
     while (*s != '\0')
     {
-        if (*s == '<' || *s == '>' || *s == '=')
+        bool got_token = false;
+        if (!escaping)
         {
-            tokens->type = DIRECTION;
-            tokens->contents[0] = *s;
-            tokens->contents[1] = '\0';
-            tokens++;
-            num_tokens++;
+            tokens->type = NA;
+            if (*s == '<' || *s == '>' || *s == '=')
+                tokens->type = DIRECTION;
+            else if (*s == ';')
+                tokens->type = SEPARATOR;
+            else if (*s == ':')
+                tokens->type = COLON;
+            else if (*s == '{')
+                tokens->type = OPEN_BRACKET;
+            else if (*s == '}')
+                tokens->type = CLOSE_BRACKET;
+            else if (*s == '\\')
+            {
+                escaping = true; // Treat the next character as a value
+                got_token = true; // Not really, we just want to skip to the next character
+            }
+
+            if (tokens->type != NA)
+            {
+                tokens->contents[0] = *s;
+                tokens->contents[1] = '\0';
+                tokens++;
+                num_tokens++;
+                got_token = true; // Skip collecting identifier/value characters
+            }
         }
-        else if (*s == ';')
-        {
-            tokens->type = SEPARATOR;
-            tokens->contents[0] = *s;
-            tokens->contents[1] = '\0';
-            tokens++;
-            num_tokens++;
-        }
-        else if (*s == ':')
-        {
-            tokens->type = COLON;
-            tokens->contents[0] = *s;
-            tokens->contents[1] = '\0';
-            tokens++;
-            num_tokens++;
-        }
-        else if (*s == '{')
-        {
-            tokens->type = OPEN_BRACKET;
-            tokens->contents[0] = *s;
-            tokens->contents[1] = '\0';
-            tokens++;
-            num_tokens++;
-        }
-        else if (*s == '}')
-        {
-            tokens->type = CLOSE_BRACKET;
-            tokens->contents[0] = *s;
-            tokens->contents[1] = '\0';
-            tokens++;
-            num_tokens++;
-        }
-        else if (!isspace(*s) && !isreserved(*s))
+        
+        if (!got_token && !isspace(*s) && (escaping || !isreserved(*s)))
         {
             char id_contents[MAX_TOKEN_LEN];
             int i = 0;
-            while (!isspace(*s) && !isreserved(*s))
+            while (!isspace(*s) && (escaping || !isreserved(*s)))
             {
                 id_contents[i++] = *s++;
                 if (i == MAX_TOKEN_LEN)
@@ -223,6 +215,7 @@ Token* tokenize(char *s)
                     fprintf(stderr, "state identifier too long\n");
                     return NULL;
                 }
+                escaping = false;
             }
 
             id_contents[i] = '\0';
@@ -243,6 +236,9 @@ Token* tokenize(char *s)
                 tokens++;
                 num_tokens++;
             }
+
+            if (escaping)
+                escaping = false;
         }
 
         s++;
