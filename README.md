@@ -18,6 +18,6 @@ START {
 }
 ```
 
-Execution starts at the state `START` and ends once `HALT` is reached. State names must be at least two characters long and cannot (along with cell values) contain any reserved characters: `{}<>:`
+Execution starts at the state `START` and ends once `HALT` is reached. State names must be at least two characters long and cannot contain any reserved characters: `{}<>=:`. Values can be reserved characters as long as they are preceded by the escape character `\`.
 
-Instructions have the following syntax: `(if cell value): (new value) (pointer movement direction) (next state);`
+Instructions have the following syntax: `(if cell value): (new value) (pointer movement direction) (next state);`. Valid pointer movement directions are left (`<`), right (`>`), and none (`=`).

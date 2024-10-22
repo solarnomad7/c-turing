@@ -1,0 +1,5 @@
+START {
+    \>: \< > START;
+    \<: \> > START;
+    _: _ = HALT;
+}
