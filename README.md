@@ -1,10 +1,11 @@
 # c-turing
 
-A fully programmable turing machine simulator written in C.
+A fully programmable turing machine simulator for Windows and Linux written in C.
 
 # Usage
 
-`turing file "input" [delay ms] [animate 0/1]`
+Use `make` to build the project.
+Using the program: `turing file "input" [delay ms] [animate 0/1]`
 
 # Turing Machine Language (TML)
 
