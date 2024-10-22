@@ -7,7 +7,7 @@
 #include "parser.h"
 
 #define MAX_TOKEN_LEN   50
-#define RESERVED_CHARS  "{}:;<>\n"
+#define RESERVED_CHARS  "{}:;<>=\n"
 
 typedef enum TokenType
 {
@@ -104,7 +104,18 @@ int parse(char *filename, State *states)
                 fprintf(stderr, "instruction missing shift direction\n");
                 return 0;
             }
-            states->instructions[states->num_instructions].shift = (t->contents[0] == '<') ? LEFT : RIGHT;
+            switch (t->contents[0])
+            {
+                case '<':
+                    states->instructions[states->num_instructions].shift = LEFT;
+                    break;
+                case '>':
+                    states->instructions[states->num_instructions].shift = RIGHT;
+                    break;
+                case '=':
+                    states->instructions[states->num_instructions].shift = NONE;
+                    break;
+            }
             t++;
 
             if (t->type != IDENTIFIER)
@@ -160,7 +171,7 @@ Token* tokenize(char *s)
 
     while (*s != '\0')
     {
-        if (*s == '<' || *s == '>')
+        if (*s == '<' || *s == '>' || *s == '=')
         {
             tokens->type = DIRECTION;
             tokens->contents[0] = *s;
