@@ -68,7 +68,7 @@ int run_machine(Machine* m, int delay, bool clear_screen)
     unsigned int init_pos = m->pointer;
 
     int num_iterations = 0;
-    while (instruction != NULL && instruction->next_state != -1) // Halt state or invalid instruction
+    while (instruction != NULL) // Invalid instruction
     {
         if (clear_screen)
         {
@@ -101,6 +101,9 @@ int run_machine(Machine* m, int delay, bool clear_screen)
             }
             m->pointer++;
         }
+
+        if (instruction->next_state == -1) // Halt state
+            break;
 
         curr_state = m->states[instruction->next_state];
         instruction = get_next_instruction(curr_state,  m->tape[m->pointer]);

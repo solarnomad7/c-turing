@@ -36,7 +36,6 @@ int parse(char *filename, State *states)
     State *first = states;
 
     int num_states = 0;
-    int arr_used = 20;
 
     char *raw = read_file(filename);
     Token *tokens = tokenize(raw);
@@ -273,7 +272,7 @@ char* read_file(char *filename)
     long len;
 
     FILE *file;
-    if (file = fopen(filename, "rb"))
+    if ((file = fopen(filename, "rb")))
     {
         fseek(file, 0, SEEK_END);
         len = ftell(file);
