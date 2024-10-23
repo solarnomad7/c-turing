@@ -7,7 +7,7 @@
 #include "parser.h"
 
 #define MAX_TOKEN_LEN   50
-#define RESERVED_CHARS  "{}:;<>=*\\\n"
+#define RESERVED_CHARS  "{}:;<>=*#\\\n"
 
 typedef enum TokenType
 {
@@ -175,6 +175,13 @@ Token* tokenize(char *s)
     while (*s != '\0')
     {
         bool got_token = false;
+        if (comment)
+        {
+            if (*s++ == '\n')
+                comment = false;
+            continue;
+        }
+
         if (!escaping)
         {
             tokens->type = NA;
@@ -190,10 +197,17 @@ Token* tokenize(char *s)
                 tokens->type = CLOSE_BRACKET;
             else if (*s == '*')
                 tokens->type = WILDCARD_VALUE;
+            else if (*s == '#')
+            {
+                comment = true;
+                s++;
+                continue;
+            }
             else if (*s == '\\')
             {
                 escaping = true; // Treat the next character as a value
-                got_token = true; // Not really, we just want to skip to the next character
+                s++;
+                continue;
             }
 
             if (tokens->type != NA)
