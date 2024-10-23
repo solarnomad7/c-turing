@@ -81,7 +81,8 @@ int run_machine(Machine* m, int delay, bool clear_screen)
 
         print_state(m->tape, init_pos, 40, m->pointer, curr_state->name);
 
-        m->tape[m->pointer] = instruction->write;
+        if (instruction->write != WILDCARD)
+            m->tape[m->pointer] = instruction->write;
         
         if (instruction->shift == LEFT)
         {
@@ -127,12 +128,25 @@ int run_machine(Machine* m, int delay, bool clear_screen)
 Instruction* get_next_instruction(State* state, char value)
 {
     Instruction* instruction = state->instructions;
+    Instruction* wildcard_instruction = NULL;
+
     for (int i = 0; i < state->num_instructions; i++)
     {
+        if (instruction->read == WILDCARD)
+        {
+            // Save a pointer to the wildcard in case no other conditions are fulfilled
+            wildcard_instruction = instruction;
+            instruction++;
+            continue;
+        }
+
         if (value == instruction->read)
             return instruction;
         instruction++;
     }
+
+    if (wildcard_instruction != NULL)
+        return wildcard_instruction;
 
     return NULL;
 }

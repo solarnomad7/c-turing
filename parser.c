@@ -7,12 +7,13 @@
 #include "parser.h"
 
 #define MAX_TOKEN_LEN   50
-#define RESERVED_CHARS  "{}:;<>=\\\n"
+#define RESERVED_CHARS  "{}:;<>=*\\\n"
 
 typedef enum TokenType
 {
     IDENTIFIER,
     VALUE,
+    WILDCARD_VALUE,
     DIRECTION,
     SEPARATOR,
     COLON,
@@ -72,7 +73,7 @@ int parse(char *filename, State *states)
             }
             t++;
         }
-        else if (t->type == VALUE)
+        else if (t->type == VALUE || t->type == WILDCARD_VALUE)
         {
             if (!in_state)
             {
@@ -80,7 +81,7 @@ int parse(char *filename, State *states)
                 return 0;
             }
 
-            states->instructions[states->num_instructions].read = t->contents[0];
+            states->instructions[states->num_instructions].read = (t->type == VALUE) ? t->contents[0] : WILDCARD;
             t++;
 
             if (t->type != COLON)
@@ -90,12 +91,12 @@ int parse(char *filename, State *states)
             }
             t++;
 
-            if (t->type != VALUE)
+            if (t->type != VALUE && t->type != WILDCARD_VALUE)
             {
                 fprintf(stderr, "instruction missing write value\n");
                 return 0;
             }
-            states->instructions[states->num_instructions].write = t->contents[0];
+            states->instructions[states->num_instructions].write = (t->type == VALUE) ? t->contents[0] : WILDCARD;
             t++;
 
             if (t->type != DIRECTION)
@@ -169,6 +170,7 @@ Token* tokenize(char *s)
     Token *first = tokens;
 
     bool escaping = false;
+    bool comment = false;
 
     while (*s != '\0')
     {
@@ -186,6 +188,8 @@ Token* tokenize(char *s)
                 tokens->type = OPEN_BRACKET;
             else if (*s == '}')
                 tokens->type = CLOSE_BRACKET;
+            else if (*s == '*')
+                tokens->type = WILDCARD_VALUE;
             else if (*s == '\\')
             {
                 escaping = true; // Treat the next character as a value

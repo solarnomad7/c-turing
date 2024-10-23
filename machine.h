@@ -3,6 +3,7 @@
 #include <stdbool.h>
 
 #define BLANK       '_'
+#define WILDCARD    -1
 #define TAPE_SIZE   10000
 #define MAX_STATES  100
 #define MAX_ID_LEN  50
