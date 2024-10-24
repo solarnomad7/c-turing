@@ -36,3 +36,4 @@ typedef struct Machine {
 
 void init_machine(Machine *m, char *input, State states[], int num_states, char *initial_state);
 int run_machine(Machine *m, int delay, bool clear_screen);
+void print_final_state(char tape[], unsigned int pointer);

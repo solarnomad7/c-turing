@@ -48,7 +48,12 @@ int main(int argc, char **argv)
     if (result < 0)
         printf("Program halted: FAILURE (could not find valid instruction)\n");
     else
+    {
         printf("Program halted: SUCCESS (reached halt state after %d steps)\n", result);
+        printf("Final state: ");
+        print_final_state(machine.tape, machine.pointer);
+        printf("\n");
+    }
 
     free(states);
 }

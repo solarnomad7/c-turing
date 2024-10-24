@@ -11,7 +11,7 @@
 #include "machine.h"
 
 Instruction* get_next_instruction(State* state, char value);
-void print_state(char *tape, unsigned int start_pos, int num_cells, unsigned int pointer, char *state_name);
+void print_state(char* tape, unsigned int pointer, char* state_name);
 void wait_ms(int ms);
 
 void init_machine(Machine *m, char *input, State states[], int num_states, char* initial_state)
@@ -65,8 +65,6 @@ int run_machine(Machine* m, int delay, bool clear_screen)
     State* curr_state = m->states[m->initial_state];
     Instruction* instruction = get_next_instruction(curr_state, m->tape[m->pointer]);
 
-    unsigned int init_pos = m->pointer;
-
     int num_iterations = 0;
     while (instruction != NULL) // Invalid instruction
     {
@@ -79,11 +77,11 @@ int run_machine(Machine* m, int delay, bool clear_screen)
             #endif
         }
 
-        print_state(m->tape, init_pos, 40, m->pointer, curr_state->name);
-
         if (instruction->write != WILDCARD)
             m->tape[m->pointer] = instruction->write;
         
+        print_state(m->tape, m->pointer, curr_state->name);
+
         if (instruction->shift == LEFT)
         {
             if (m->pointer == 0)
@@ -151,21 +149,37 @@ Instruction* get_next_instruction(State* state, char value)
     return NULL;
 }
 
-void print_state(char* tape, unsigned int start_pos, int num_cells, unsigned int pointer, char* state_name)
+void print_state(char* tape, unsigned int pointer, char* state_name)
 {
-    num_cells -= 10;
-    for (int i = -10; i < num_cells; i++)
+    const int num_cells = 31; // odd number
+
+    for (int i = pointer - (num_cells-1)/2; i < (int)pointer + (num_cells-1)/2; i++)
     {
-        printf("%c ", *(tape + start_pos + i));
+        if (i >= TAPE_SIZE || i < 0)
+            printf("XX");
+        else
+            printf("%c ", *(tape + i));
     }
     printf("%s\n", state_name);
 
-    for (int i = -10; i < num_cells; i++)
+    for (int i = 0; i < num_cells; i++)
     {
-        if (pointer == start_pos + i)
+        if (i == (num_cells-1)/2)
             printf("^ ");
         else
             printf("  ");
+    }
+    printf("\n");
+}
+
+void print_final_state(char tape[], unsigned int pointer)
+{
+    for (int i = pointer; i < TAPE_SIZE; i++)
+    {
+        if (tape[i] == '_')
+            break;
+        else
+            printf("%c", tape[i]);
     }
     printf("\n");
 }
