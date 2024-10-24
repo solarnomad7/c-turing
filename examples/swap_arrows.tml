@@ -1,5 +1,10 @@
 START {
     \>: \< > START;
     \<: \> > START;
-    _: _ = HALT;
+    _: _ < goto_start;
+}
+
+goto_start {
+    _: _ > HALT;
+    *: * < goto_start;
 }
